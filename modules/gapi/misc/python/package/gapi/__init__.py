@@ -36,11 +36,6 @@ def gin(*args):
     return [*args]
 
 
-@register('cv2.gapi')
-def descr_of(*args):
-    return [*args]
-
-
 @register('cv2')
 class GOpaque():
     # NB: Inheritance from c++ class cause segfault.
@@ -295,3 +290,5 @@ cv.gapi.wip.draw.Line = cv.gapi_wip_draw_Line
 cv.gapi.wip.draw.Mosaic = cv.gapi_wip_draw_Mosaic
 cv.gapi.wip.draw.Image = cv.gapi_wip_draw_Image
 cv.gapi.wip.draw.Poly = cv.gapi_wip_draw_Poly
+
+cv.gapi.streaming.queue_capacity = cv.gapi_streaming_queue_capacity
