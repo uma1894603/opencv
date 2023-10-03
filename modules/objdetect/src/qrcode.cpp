@@ -954,6 +954,7 @@ public:
     double epsX, epsY;
     mutable vector<vector<Point2f>> alignmentMarkers;
     mutable vector<Point2f> updateQrCorners;
+    mutable vector<QRCodeEncoder::ECIEncodings> encodings;
     bool useAlignmentMarkers = true;
 
     bool detect(InputArray in, OutputArray points) const override;
@@ -969,6 +970,8 @@ public:
     String decodeCurved(InputArray in, InputArray points, OutputArray straight_qrcode);
 
     std::string detectAndDecodeCurved(InputArray in, OutputArray points, OutputArray straight_qrcode);
+
+    QRCodeEncoder::ECIEncodings getEncoding(size_t codeIdx);
 };
 
 QRCodeDetector::QRCodeDetector() {
@@ -983,6 +986,12 @@ QRCodeDetector& QRCodeDetector::setEpsX(double epsX) {
 QRCodeDetector& QRCodeDetector::setEpsY(double epsY) {
     std::dynamic_pointer_cast<ImplContour>(p)->epsY = epsY;
     return *this;
+}
+
+QRCodeEncoder::ECIEncodings QRCodeDetector::getEncoding(size_t codeIdx) {
+    auto& encodings = std::dynamic_pointer_cast<ImplContour>(p)->encodings;
+    CV_Assert(codeIdx < encodings.size());
+    return encodings[codeIdx];
 }
 
 bool ImplContour::detect(InputArray in, OutputArray points) const
@@ -1015,6 +1024,7 @@ public:
     float coeff_expansion = 1.f;
     vector<Point2f> getOriginalPoints() {return original_points;}
     bool useAlignmentMarkers;
+    QRCodeEncoder::ECIEncodings encoding;
 protected:
     double getNumModules();
     Mat getHomography() {
@@ -2810,6 +2820,8 @@ bool QRDecode::decodingProcess()
 
     CV_LOG_INFO(NULL, "QR: decoded with .version=" << qr_code_data.version << " .data_type=" << qr_code_data.data_type << " .eci=" << qr_code_data.eci << " .payload_len=" << qr_code_data.payload_len)
 
+    encoding = static_cast<QRCodeEncoder::ECIEncodings>(qr_code_data.eci);
+
     switch (qr_code_data.data_type)
     {
         case QUIRC_DATA_TYPE_NUMERIC:
@@ -2930,6 +2942,7 @@ std::string ImplContour::decode(InputArray in, InputArray points, OutputArray st
         alignmentMarkers = {qrdec.alignment_coords};
         updateQrCorners = qrdec.getOriginalPoints();
     }
+    encodings.resize(1, qrdec.encoding);
     return ok ? decoded_info : std::string();
 }
 
@@ -2963,6 +2976,7 @@ String ImplContour::decodeCurved(InputArray in, InputArray points, OutputArray s
     {
         qrdec.getStraightBarcode().convertTo(straight_qrcode, CV_8UC1);
     }
+    encodings.resize(1, qrdec.encoding);
 
     return ok ? decoded_info : std::string();
 }
