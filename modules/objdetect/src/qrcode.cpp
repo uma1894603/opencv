@@ -2820,6 +2820,7 @@ bool QRDecode::decodingProcess()
 
     CV_LOG_INFO(NULL, "QR: decoded with .version=" << qr_code_data.version << " .data_type=" << qr_code_data.data_type << " .eci=" << qr_code_data.eci << " .payload_len=" << qr_code_data.payload_len)
 
+    // qr_code_data.eci might be 0
     encoding = static_cast<QRCodeEncoder::ECIEncodings>(qr_code_data.eci);
 
     switch (qr_code_data.data_type)
@@ -2840,14 +2841,14 @@ bool QRDecode::decodingProcess()
             return true;
         case QUIRC_DATA_TYPE_BYTE:
             // https://en.wikipedia.org/wiki/Extended_Channel_Interpretation
-            if (qr_code_data.eci == QUIRC_ECI_UTF_8) {
+            if (encoding == QRCodeEncoder::ECIEncodings::ECI_UTF8) {
                 CV_LOG_INFO(NULL, "QR: payload ECI is UTF-8");
                 if (!checkUTF8(qr_code_data.payload, qr_code_data.payload_len)) {
                     CV_LOG_INFO(NULL, "QUIRC_DATA_TYPE_BYTE with UTF-8 ECI must be UTF-8 compatible string");
                     return false;
                 }
                 result_info.assign((const char*)qr_code_data.payload, qr_code_data.payload_len);
-            } else if (qr_code_data.eci == 25/*ECI_UTF_16BE*/) {
+            } else if (encoding == QRCodeEncoder::ECIEncodings::ECI_UTF16) {
                 CV_LOG_INFO(NULL, "QR: UTF-16BE ECI is not supported");
                 return false;
             } else if (checkASCIIcompatible(qr_code_data.payload, qr_code_data.payload_len)) {
@@ -2864,8 +2865,7 @@ bool QRDecode::decodingProcess()
             }
             return true;
         case QUIRC_DATA_TYPE_KANJI:
-            // FIXIT BUG: we must return UTF-8 compatible string
-            CV_LOG_WARNING(NULL, "QR: Kanji is not supported properly");
+            encoding = QRCodeEncoder::ECIEncodings::ECI_SHIFT_JIS;
             result_info.assign((const char*)qr_code_data.payload, qr_code_data.payload_len);
             return true;
     }
