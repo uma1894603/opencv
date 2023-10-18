@@ -3018,6 +3018,89 @@ struct DecimateAlpha
     float alpha;
 };
 
+namespace
+{
+inline void vx_load_as(const uchar* ptr, v_float32& a)
+{ a = v_cvt_f32(v_reinterpret_as_s32(vx_load_expand_q(ptr))); }
+
+inline void vx_load_as(const ushort* ptr, v_float32& a)
+{ a = v_cvt_f32(v_reinterpret_as_s32(vx_load_expand(ptr))); }
+
+inline void vx_load_as(const short* ptr, v_float32& a)
+{ a = v_cvt_f32(v_reinterpret_as_s32(vx_load_expand(ptr))); }
+
+inline void vx_load_as(const float* ptr, v_float32& a)
+{ a = vx_load(ptr); }
+
+v_float32 vx_setall_local(float coeff) {
+    return vx_setall_f32(coeff);
+}
+
+template <typename T>
+struct VInterArea {};
+
+template<>
+struct VInterArea<float> { using T = v_float32; };
+
+#if CV_SIMD128_64F
+inline void vx_load_as(const double* ptr, v_float64& a)
+{ a = vx_load(ptr); }
+
+v_float64 vx_setall_local(double coeff) {
+    return vx_setall_f64(coeff);
+}
+
+template<>
+struct VInterArea<double> { using T = v_float64; };
+#endif
+
+template <typename T, typename WT>
+void v_inter_area_set_or_update_sum(const T *const src, int n, bool do_set,
+                                    WT coeff, WT *sum) {
+    using VT = typename VInterArea<WT>::T;
+    constexpr int step = VT::nlanes;
+    const VT v_coeff = vx_setall_local(coeff);
+    int x;
+    if (do_set)
+    {
+        for (x = 0; x + step < n; x += step)
+        {
+            VT line;
+            vx_load_as(src + x, line);
+            v_store(sum + x, line * v_coeff);
+        }
+        for(; x < n; ++x) sum[x] = saturate_cast<WT>(src[x]) * coeff;
+    }
+    else
+    {
+        for (x = 0; x + step < n; x += step)
+        {
+            VT line;
+            vx_load_as(src + x, line);
+            const VT sum_x = vx_load(sum + x);
+            v_store(sum + x, v_fma(line, v_coeff, sum_x));
+        }
+        for(; x < n; ++x) sum[x] += saturate_cast<WT>(src[x]) * coeff;
+    }
+}
+
+#if !CV_SIMD128_64F
+template <>
+void v_inter_area_set_or_update_sum<double, double>(const double *const src,
+                                                    int n, bool do_set,
+                                                    double coeff, double *sum) {
+    int x;
+    if (do_set)
+    {
+        for(x = 0; x < n; ++x) sum[x] = src[x] * coeff;
+    }
+    else
+    {
+        for(x = 0; x < n; ++x) sum[x] += src[x] * coeff;
+    }
+}
+#endif
+}
 
 template<typename T, typename WT> class ResizeArea_Invoker :
     public ParallelLoopBody
@@ -3039,107 +3122,80 @@ public:
 
     virtual void operator() (const Range& range) const CV_OVERRIDE
     {
-        Size dsize = dst->size();
-        int cn = dst->channels();
-        dsize.width *= cn;
-        AutoBuffer<WT> _buffer(dsize.width*2);
+        const int cn = dst->channels();
         const DecimateAlpha* xtab = xtab0;
-        int xtab_size = xtab_size0;
-        WT *buf = _buffer.data(), *sum = buf + dsize.width;
-        int j_start = tabofs[range.start], j_end = tabofs[range.end], j, k, dx, prev_dy = ytab[j_start].di;
+        const int xtab_size = xtab_size0;
+        const int j_start = tabofs[range.start], j_end = tabofs[range.end];
 
-        for( dx = 0; dx < dsize.width; dx++ )
-            sum[dx] = (WT)0;
+        static_assert(
+            std::is_same<WT, float>::value || std::is_same<WT, double>::value,
+            "Must convert to float or double type");
+        cv::Mat tmp(range.size(), src->cols, CV_MAKETYPE(cv::DataType<WT>::type, cn));
 
-        for( j = j_start; j < j_end; j++ )
+        // iter == 0 reduces the number of lines and stores the result in tmp.
+        // tmp is then transposed and its number of lines is then reduced.
+        for (int iter = 0; iter < 2; ++iter)
         {
-            WT beta = ytab[j].alpha;
-            int dy = ytab[j].di;
-            int sy = ytab[j].si;
-
+            int row_start, row_end, start_di;
+            if (iter == 0)
             {
-                const T* S = src->template ptr<T>(sy);
-                for( dx = 0; dx < dsize.width; dx++ )
-                    buf[dx] = (WT)0;
-
-                if( cn == 1 )
-                    for( k = 0; k < xtab_size; k++ )
-                    {
-                        int dxn = xtab[k].di;
-                        WT alpha = xtab[k].alpha;
-                        buf[dxn] += S[xtab[k].si]*alpha;
-                    }
-                else if( cn == 2 )
-                    for( k = 0; k < xtab_size; k++ )
-                    {
-                        int sxn = xtab[k].si;
-                        int dxn = xtab[k].di;
-                        WT alpha = xtab[k].alpha;
-                        WT t0 = buf[dxn] + S[sxn]*alpha;
-                        WT t1 = buf[dxn+1] + S[sxn+1]*alpha;
-                        buf[dxn] = t0; buf[dxn+1] = t1;
-                    }
-                else if( cn == 3 )
-                    for( k = 0; k < xtab_size; k++ )
-                    {
-                        int sxn = xtab[k].si;
-                        int dxn = xtab[k].di;
-                        WT alpha = xtab[k].alpha;
-                        WT t0 = buf[dxn] + S[sxn]*alpha;
-                        WT t1 = buf[dxn+1] + S[sxn+1]*alpha;
-                        WT t2 = buf[dxn+2] + S[sxn+2]*alpha;
-                        buf[dxn] = t0; buf[dxn+1] = t1; buf[dxn+2] = t2;
-                    }
-                else if( cn == 4 )
-                {
-                    for( k = 0; k < xtab_size; k++ )
-                    {
-                        int sxn = xtab[k].si;
-                        int dxn = xtab[k].di;
-                        WT alpha = xtab[k].alpha;
-                        WT t0 = buf[dxn] + S[sxn]*alpha;
-                        WT t1 = buf[dxn+1] + S[sxn+1]*alpha;
-                        buf[dxn] = t0; buf[dxn+1] = t1;
-                        t0 = buf[dxn+2] + S[sxn+2]*alpha;
-                        t1 = buf[dxn+3] + S[sxn+3]*alpha;
-                        buf[dxn+2] = t0; buf[dxn+3] = t1;
-                    }
-                }
-                else
-                {
-                    for( k = 0; k < xtab_size; k++ )
-                    {
-                        int sxn = xtab[k].si;
-                        int dxn = xtab[k].di;
-                        WT alpha = xtab[k].alpha;
-                        for( int c = 0; c < cn; c++ )
-                            buf[dxn + c] += S[sxn + c]*alpha;
-                    }
-                }
-            }
-
-            if( dy != prev_dy )
-            {
-                T* D = dst->template ptr<T>(prev_dy);
-
-                for( dx = 0; dx < dsize.width; dx++ )
-                {
-                    D[dx] = saturate_cast<T>(sum[dx]);
-                    sum[dx] = beta*buf[dx];
-                }
-                prev_dy = dy;
+                row_start = j_start;
+                row_end = j_end;
+                // Blend lines together first.
+                start_di = ytab[j_start].di;
             }
             else
             {
-                for( dx = 0; dx < dsize.width; dx++ )
-                    sum[dx] += beta*buf[dx];
+                row_start = 0;
+                row_end = xtab_size;
+                start_di = xtab[0].di;
             }
-        }
+            int prev_di = -1;
+            int di = 0;
+            WT* sum = nullptr;
+            for (int j = row_start; j < row_end; ++j)
+            {
+                di = (iter == 0) ? ytab[j].di : xtab[j].di;
 
+                const bool start_new_line = (di != prev_di);
+                if (start_new_line)
+                {
+                    sum = tmp.template ptr<WT>(di - start_di);
+                    prev_di = di;
+                }
+
+                if (iter == 0)
+                {
+                    const WT coeff = ytab[j].alpha;
+                    const int si = ytab[j].si;
+                    const T* s = src->template ptr<T>(si);
+                    v_inter_area_set_or_update_sum<T, WT>(s, tmp.cols * cn,
+                                                          start_new_line, coeff, sum);
+                }
+                else
+                {
+                    const WT coeff = xtab[j].alpha;
+                    const int si = xtab[j].si;
+                    const WT* s = tmp.template ptr<WT>(si);
+                    v_inter_area_set_or_update_sum<WT, WT>(s, tmp.cols * cn,
+                                                           start_new_line, coeff, sum);
+                }
+            }
+
+            tmp = tmp.rowRange(0, di - start_di + 1);
+            if (iter == 0) tmp = tmp.t();
+        }
+        cv::Mat dst_tmp = dst->rowRange(range);
+        if (tmp.type() == dst_tmp.type())
         {
-        T* D = dst->template ptr<T>(prev_dy);
-        for( dx = 0; dx < dsize.width; dx++ )
-            D[dx] = saturate_cast<T>(sum[dx]);
+            transpose(tmp, dst_tmp);
+        }
+        else
+        {
+            // Saturate_cast to dst.
+            cv::Mat tmp_type;
+            tmp.convertTo(tmp_type, dst_tmp.type());
+            transpose(tmp_type, dst_tmp);
         }
     }
 
@@ -3180,7 +3236,7 @@ typedef void (*ResizeAreaFunc)( const Mat& src, Mat& dst,
                                 const int* yofs);
 
 
-static int computeResizeAreaTab( int ssize, int dsize, int cn, double scale, DecimateAlpha* tab )
+static int computeResizeAreaTab( int ssize, int dsize, double scale, DecimateAlpha* tab )
 {
     int k = 0;
     for(int dx = 0; dx < dsize; dx++ )
@@ -3197,24 +3253,24 @@ static int computeResizeAreaTab( int ssize, int dsize, int cn, double scale, Dec
         if( sx1 - fsx1 > 1e-3 )
         {
             CV_Assert( k < ssize*2 );
-            tab[k].di = dx * cn;
-            tab[k].si = (sx1 - 1) * cn;
+            tab[k].di = dx;
+            tab[k].si = sx1 - 1;
             tab[k++].alpha = (float)((sx1 - fsx1) / cellWidth);
         }
 
         for(int sx = sx1; sx < sx2; sx++ )
         {
             CV_Assert( k < ssize*2 );
-            tab[k].di = dx * cn;
-            tab[k].si = sx * cn;
+            tab[k].di = dx;
+            tab[k].si = sx;
             tab[k++].alpha = float(1.0 / cellWidth);
         }
 
         if( fsx2 - sx2 > 1e-3 )
         {
             CV_Assert( k < ssize*2 );
-            tab[k].di = dx * cn;
-            tab[k].si = sx2 * cn;
+            tab[k].di = dx;
+            tab[k].si = sx2;
             tab[k++].alpha = (float)(std::min(std::min(fsx2 - sx2, 1.), cellWidth) / cellWidth);
         }
     }
@@ -3896,8 +3952,8 @@ void resize(int src_type,
             AutoBuffer<DecimateAlpha> _xytab((src_width + src_height)*2);
             DecimateAlpha* xtab = _xytab.data(), *ytab = xtab + src_width*2;
 
-            int xtab_size = computeResizeAreaTab(src_width, dsize.width, cn, scale_x, xtab);
-            int ytab_size = computeResizeAreaTab(src_height, dsize.height, 1, scale_y, ytab);
+            int xtab_size = computeResizeAreaTab(src_width, dsize.width, scale_x, xtab);
+            int ytab_size = computeResizeAreaTab(src_height, dsize.height, scale_y, ytab);
 
             AutoBuffer<int> _tabofs(dsize.height + 1);
             int* tabofs = _tabofs.data();
