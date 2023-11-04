@@ -282,6 +282,9 @@ public:
      * The identifiers have the same order than the markers in the imgPoints array.
      * @param rejectedImgPoints contains the imgPoints of those squares whose inner code has not a
      * correct codification. Useful for debugging purposes.
+     * @param markersUnc contains the normalized uncertainty [0;1] of the markers' detection,
+     * defined as percentage of incorrect pixel detections, with 0 describing a pixel perfect detection.
+     * The uncertainties are of type float (e.g. std::vector<float>)
      *
      * Performs marker detection in the input image. Only markers included in the specific dictionary
      * are searched. For each detected marker, it returns the 2D position of its corner in the image
@@ -292,7 +295,7 @@ public:
      * @sa undistort, estimatePoseSingleMarkers,  estimatePoseBoard
      */
     CV_WRAP void detectMarkers(InputArray image, OutputArrayOfArrays corners, OutputArray ids,
-                               OutputArrayOfArrays rejectedImgPoints = noArray()) const;
+                               OutputArrayOfArrays rejectedImgPoints = noArray(), OutputArray markersUnc = noArray()) const;
 
     /** @brief Refine not detected markers based on the already detected and the board layout
      *
