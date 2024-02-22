@@ -60,6 +60,19 @@ void cv::GStreamingCompiled::Priv::setSource(cv::GRunArgs &&args)
     m_exec->setSource(std::move(args));
 }
 
+int cv::GStreamingCompiled::Priv::addSource(cv::GRunArgs &&args)
+{
+    // FIXME: Should this check happen once & in common place?
+    // Or moved to a function as it repeats
+    if (!m_metas.empty() && !can_describe(m_metas, args))
+    {
+        util::throw_error(std::logic_error("This object was compiled "
+                                           "for different metadata!"));
+    }
+    GAPI_Assert(m_exec != nullptr);
+    return m_exec->addSource(std::move(args));
+}
+
 void cv::GStreamingCompiled::Priv::start()
 {
     m_exec->start();
@@ -73,6 +86,11 @@ bool cv::GStreamingCompiled::Priv::pull(cv::GRunArgsP &&outs)
 bool cv::GStreamingCompiled::Priv::pull(cv::GOptRunArgsP &&outs)
 {
     return m_exec->pull(std::move(outs));
+}
+
+bool cv::GStreamingCompiled::Priv::pull(cv::gapi::streaming::tag &stream_tag, cv::GRunArgsP &&outs)
+{
+    return m_exec->pull(stream_tag, std::move(outs));
 }
 
 std::tuple<bool, cv::util::variant<cv::GRunArgs, cv::GOptRunArgs>> cv::GStreamingCompiled::Priv::pull()
@@ -118,6 +136,16 @@ void cv::GStreamingCompiled::setSource(const cv::gapi::wip::IStreamSource::Ptr &
     setSource(cv::gin(s));
 }
 
+int cv::GStreamingCompiled::addSource(const cv::gapi::wip::IStreamSource::Ptr &s)
+{
+    return addSource(cv::gin(s));
+}
+
+int cv::GStreamingCompiled::addSource(GRunArgs &&ins)
+{
+    return m_priv->addSource(std::move(ins));
+}
+
 void cv::GStreamingCompiled::start()
 {
     m_priv->start();
@@ -138,6 +166,11 @@ bool cv::GStreamingCompiled::pull(cv::GOptRunArgsP &&outs)
     return m_priv->pull(std::move(outs));
 }
 
+bool cv::GStreamingCompiled::pull(cv::gapi::streaming::tag &stream_tag, cv::GRunArgsP &&outs)
+{
+    return m_priv->pull(stream_tag, std::move(outs));
+}
+
 bool cv::GStreamingCompiled::try_pull(cv::GRunArgsP &&outs)
 {
     return m_priv->try_pull(std::move(outs));
@@ -146,6 +179,11 @@ bool cv::GStreamingCompiled::try_pull(cv::GRunArgsP &&outs)
 void cv::GStreamingCompiled::stop()
 {
     m_priv->stop();
+}
+
+void cv::GStreamingCompiled::stop(int stream_id) {
+    // Implementation TBD
+    (void) stream_id;
 }
 
 bool cv::GStreamingCompiled::running() const

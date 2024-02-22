@@ -16,6 +16,7 @@
 #include <opencv2/gapi/util/optional.hpp>
 #include <opencv2/gapi/garg.hpp>
 #include <opencv2/gapi/streaming/source.hpp>
+#include <opencv2/gapi/streaming/tag.hpp>
 
 namespace cv {
 
@@ -234,6 +235,24 @@ public:
     }
 
     /**
+     * TBD
+     */
+    int addSource(GRunArgs &&ins);
+
+    /**
+     * TBD
+     */
+    int addSource(const gapi::wip::IStreamSource::Ptr& s);
+
+    /**
+     * TBD
+     */
+    template<typename T, typename... Args>
+    int addSource(Args&&... args) {
+        return addSource(cv::gapi::wip::make_src<T>(std::forward<Args>(args)...));
+    }
+
+    /**
      * @brief Start the pipeline execution.
      *
      * Use pull()/try_pull() to obtain data. Throws an exception if
@@ -271,6 +290,11 @@ public:
      *    false marks end of the stream.
      */
     bool pull(cv::GRunArgsP &&outs);
+
+    /**
+     * TBD
+     */
+    bool pull(cv::gapi::streaming::tag &tag, cv::GRunArgsP &&outs);
 
     // NB: Used from python
     /// @private -- Exclude this function from OpenCV documentation
@@ -339,6 +363,11 @@ public:
     GAPI_WRAP void stop();
 
     /**
+     * TBD
+     */
+    void stop(int stream_id);
+
+    /**
      * @brief Test if the pipeline is running.
      *
      * @note This method is not thread-safe (with respect to the user
@@ -388,7 +417,6 @@ protected:
     /// @private
     std::shared_ptr<Priv> m_priv;
 };
-/** @} */
 
 namespace gapi {
 
@@ -413,9 +441,11 @@ struct GAPI_EXPORTS_W_SIMPLE queue_capacity
     GAPI_PROP_RW
     size_t capacity;
 };
-/** @} */
+
 } // namespace streaming
+
 } // namespace gapi
+/** @} */
 
 namespace detail
 {
