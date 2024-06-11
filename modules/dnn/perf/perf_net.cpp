@@ -96,22 +96,22 @@ public:
 
 PERF_TEST_P_(DNNTestNetwork, AlexNet)
 {
-    processNet("dnn/bvlc_alexnet.caffemodel", "dnn/bvlc_alexnet.prototxt", cv::Size(227, 227));
+    processNet("dnn/onnx/models/alexnet.onnx", "", cv::Size(227, 227));
 }
 
 PERF_TEST_P_(DNNTestNetwork, GoogLeNet)
 {
-    processNet("dnn/bvlc_googlenet.caffemodel", "dnn/bvlc_googlenet.prototxt", cv::Size(224, 224));
+    processNet("dnn/onnx/models/googlenet.onnx", "", cv::Size(224, 224));
 }
 
 PERF_TEST_P_(DNNTestNetwork, ResNet_50)
 {
-    processNet("dnn/ResNet-50-model.caffemodel", "dnn/ResNet-50-deploy.prototxt", cv::Size(224, 224));
+    processNet("dnn/onnx/models/resnet50v1.onnx", "", cv::Size(224, 224));
 }
 
-PERF_TEST_P_(DNNTestNetwork, SqueezeNet_v1_1)
+PERF_TEST_P_(DNNTestNetwork, SqueezeNet_v1)
 {
-    processNet("dnn/squeezenet_v1.1.caffemodel", "dnn/squeezenet_v1.1.prototxt", cv::Size(227, 227));
+    processNet("dnn/onnx/models/squeezenet.onnx", "", cv::Size(227, 227));
 }
 
 PERF_TEST_P_(DNNTestNetwork, Inception_5h)
@@ -144,7 +144,7 @@ PERF_TEST_P_(DNNTestNetwork, MobileNet_SSD_v2_TensorFlow)
 
 PERF_TEST_P_(DNNTestNetwork, DenseNet_121)
 {
-    processNet("dnn/DenseNet_121.caffemodel", "dnn/DenseNet_121.prototxt", cv::Size(224, 224));
+    processNet("dnn/onnx/models/densenet121.onnx", "", cv::Size(224, 224));
 }
 
 PERF_TEST_P_(DNNTestNetwork, OpenPose_pose_mpi_faster_4_stages)

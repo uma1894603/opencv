@@ -104,8 +104,7 @@ TEST_P(DNNTestNetwork, DISABLED_YOLOv8n) {
 TEST_P(DNNTestNetwork, AlexNet)
 {
     applyTestTag(CV_TEST_TAG_MEMORY_1GB);
-    processNet("dnn/bvlc_alexnet.caffemodel", "dnn/bvlc_alexnet.prototxt",
-               Size(227, 227), "prob");
+    processNet("dnn/onnx/models/alexnet.onnx", "", Size(224, 224), "prob_1");
     expectNoFallbacksFromIE(net);
     expectNoFallbacksFromCUDA(net);
 }
@@ -123,10 +122,9 @@ TEST_P(DNNTestNetwork, ResNet_50)
     expectNoFallbacksFromCUDA(net);
 }
 
-TEST_P(DNNTestNetwork, SqueezeNet_v1_1)
+TEST_P(DNNTestNetwork, SqueezeNet_v1)
 {
-    processNet("dnn/squeezenet_v1.1.caffemodel", "dnn/squeezenet_v1.1.prototxt",
-               Size(227, 227), "prob");
+    processNet("dnn/onnx/models/squeezenet.onnx", "", Size(224, 224));
     expectNoFallbacksFromIE(net);
     expectNoFallbacksFromCUDA(net);
 }
@@ -135,8 +133,7 @@ TEST_P(DNNTestNetwork, GoogLeNet)
 {
     applyTestTag(target == DNN_TARGET_CPU ? "" : CV_TEST_TAG_MEMORY_512MB);
 
-    processNet("dnn/bvlc_googlenet.caffemodel", "dnn/bvlc_googlenet.prototxt",
-               Size(224, 224), "prob");
+    processNet("dnn/onnx/models/googlenet.onnx", "", Size(224, 224), "prob_1");
     expectNoFallbacksFromIE(net);
     expectNoFallbacksFromCUDA(net);
 }
@@ -433,10 +430,10 @@ TEST_P(DNNTestNetwork, DenseNet_121)
     }
     else if (target == DNN_TARGET_CUDA_FP16)
     {
-        l1 = 0.008;
-        lInf = 0.06;
+        l1 = 0.02;
+        lInf = 0.08;
     }
-    processNet("dnn/DenseNet_121.caffemodel", "dnn/DenseNet_121.prototxt", Size(224, 224), "", l1, lInf);
+    processNet("dnn/onnx/models/densenet121.onnx", "", Size(224, 224), "", l1, lInf);
     if (target != DNN_TARGET_MYRIAD || getInferenceEngineVPUType() != CV_DNN_INFERENCE_ENGINE_VPU_TYPE_MYRIAD_X)
         expectNoFallbacksFromIE(net);
     expectNoFallbacksFromCUDA(net);
