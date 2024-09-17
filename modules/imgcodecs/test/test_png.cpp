@@ -117,7 +117,7 @@ TEST(Imgcodecs_Png, load_save_animation)
 
     Mat image = imread(filename, IMREAD_UNCHANGED);
     s_animation.frames.push_back(image.clone());
-    Mat roi = image(Rect(0, 680, 680, 220));
+    Mat roi = image(Rect(0, 170, 164, 47));
     int timestamp = 0;
     s_animation.timestamps.push_back(timestamp);
 
@@ -169,7 +169,7 @@ TEST(Imgcodecs_Png, load_save_multiframes_rgba)
 
     Mat image = imread(filename, IMREAD_UNCHANGED);
     png_frames.push_back(image.clone());
-    Mat roi = image(Rect(0, 680, 680, 220));
+    Mat roi = image(Rect(0, 170, 164, 47));
 
     for (int i = 0; i < 15; i++)
     {
@@ -208,7 +208,7 @@ TEST(Imgcodecs_Png, load_save_multiframes_rgb)
 
     Mat image = imread(filename);
     png_frames.push_back(image.clone());
-    Mat roi = image(Rect(0, 680, 680, 220));
+    Mat roi = image(Rect(0, 170, 164, 47));
 
     for (int i = 0; i < 15; i++)
     {
@@ -247,7 +247,7 @@ TEST(Imgcodecs_Png, load_save_multiframes_gray)
 
     Mat image = imread(filename, IMREAD_GRAYSCALE);
     png_frames.push_back(image.clone());
-    Mat roi = image(Rect(0, 680, 680, 220));
+    Mat roi = image(Rect(0, 170, 164, 47));
 
     for (size_t i = 0; i < 15; i++)
     {
