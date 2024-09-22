@@ -1,44 +1,6 @@
-/*M///////////////////////////////////////////////////////////////////////////////////////
-//
-//  IMPORTANT: READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
-//
-//  By downloading, copying, installing or using the software you agree to this license.
-//  If you do not agree to this license, do not download, install,
-//  copy or use the software.
-//
-//
-//                          License Agreement
-//                For Open Source Computer Vision Library
-//
-// Copyright (C) 2000-2008, Intel Corporation, all rights reserved.
-// Copyright (C) 2009, Willow Garage Inc., all rights reserved.
-// Third party copyrights are property of their respective owners.
-//
-// Redistribution and use in source and binary forms, with or without modification,
-// are permitted provided that the following conditions are met:
-//
-//   * Redistribution's of source code must retain the above copyright notice,
-//     this list of conditions and the following disclaimer.
-//
-//   * Redistribution's in binary form must reproduce the above copyright notice,
-//     this list of conditions and the following disclaimer in the documentation
-//     and/or other materials provided with the distribution.
-//
-//   * The name of the copyright holders may not be used to endorse or promote products
-//     derived from this software without specific prior written permission.
-//
-// This software is provided by the copyright holders and contributors "as is" and
-// any express or implied warranties, including, but not limited to, the implied
-// warranties of merchantability and fitness for a particular purpose are disclaimed.
-// In no event shall the Intel Corporation or contributors be liable for any direct,
-// indirect, incidental, special, exemplary, or consequential damages
-// (including, but not limited to, procurement of substitute goods or services;
-// loss of use, data, or profits; or business interruption) however caused
-// and on any theory of liability, whether in contract, strict liability,
-// or tort (including negligence or otherwise) arising in any way out of
-// the use of this software, even if advised of the possibility of such damage.
-//
-//M*/
+// This file is part of OpenCV project.
+// It is subject to the license terms in the LICENSE file found in the top-level
+// directory of this distribution and at http://opencv.org/license.html
 
 #ifndef OPENCV_IMGCODECS_HPP
 #define OPENCV_IMGCODECS_HPP
@@ -218,6 +180,49 @@ enum ImwriteHDRCompressionFlags {
 
 //! @} imgcodecs_flags
 
+/** @brief Represents an animation with multiple frames.
+The Animation struct is used to store and manage the data for an animated sequence.
+It includes information about the number of times the animation should loop, the background color,
+timestamps for each frame, and the frames themselves.
+*/
+struct CV_EXPORTS_W_SIMPLE Animation
+{
+    //! Number of times the animation should loop. 0 means infinite looping.
+    CV_PROP_RW int loop_count;
+    //! Background color of the animation in RGBA format.
+    CV_PROP_RW int bgcolor;
+    //! Timestamps for each frame in milliseconds.
+    CV_PROP_RW std::vector<int> timestamps;
+    //! Vector of frames, where each Mat represents a single frame.
+    CV_PROP_RW std::vector<Mat> frames;
+    //! Quality of the animation, typically between 0 (lowest) and 100 (highest).
+    CV_PROP_RW int quality;
+
+    // Default constructor
+    Animation()
+        : loop_count(0), bgcolor(0), quality(100) // Initialize loop_count, bgcolor, and quality to default values
+    {
+    }
+
+    // Parameterized constructor for flexibility
+    Animation(int _loop_count, int _bgcolor, int _quality = 100)
+        : loop_count(_loop_count), bgcolor(_bgcolor), quality(_quality)
+    {
+        // Ensure valid quality range
+        if (_quality < 0 || _quality > 100)
+            this->quality = 100; // default to 100 if out of range
+        if (_loop_count < 0 || _loop_count > 0xffff)
+            this->loop_count = 0; // loop_count should be non-negative
+    }
+
+    //! Returns the total number of frames in the animation.
+    CV_WRAP int getFrameCount() const
+    {
+        return static_cast<int>(frames.size());
+    }
+};
+
+
 /** @brief Loads an image from a file.
 
 @anchor imread
@@ -303,6 +308,30 @@ The function imreadmulti loads a specified range from a multi-page image from th
 @sa cv::imread
 */
 CV_EXPORTS_W bool imreadmulti(const String& filename, CV_OUT std::vector<Mat>& mats, int start, int count, int flags = IMREAD_ANYCOLOR);
+
+/** @brief Loads images from an animated file into an Animation structure.
+
+The function imreadanimation loads frames from an animated file (e.g., AVIF, PNG, WEBP) into the provided Animation struct.
+
+@param filename The name of the file to be loaded. This file should be an animated format supported by the function.
+@param animation A reference to an Animation struct that will be filled with the loaded frames. It is assumed to be initialized before the call.
+
+@return Returns true if the file was successfully loaded and frames were extracted; returns false otherwise.
+*/
+CV_EXPORTS_W bool imreadanimation(const String& filename, CV_OUT Animation& animation);
+
+
+/** @brief Saves an animation to a specified file.
+
+The function imwriteanimation saves the provided Animation data to the specified file in an animated format. Supported formats depend on the implementation and may include formats like AVIF, PNG, or WEBP.
+
+@param filename The name of the file where the animation will be saved. The file extension determines the format.
+@param animation A constant reference to an Animation struct containing the frames and metadata to be saved.
+@param params Optional format-specific parameters encoded as pairs (paramId_1, paramValue_1, paramId_2, paramValue_2, ...). These parameters are used to specify additional options for the encoding process. Refer to `cv::ImwriteFlags` for details on possible parameters.
+
+@return Returns true if the animation was successfully saved; returns false otherwise.
+*/
+CV_EXPORTS_W bool imwriteanimation(const String& filename, const Animation& animation, const std::vector<int>& params = std::vector<int>());
 
 /** @brief Returns the number of images inside the given file
 

@@ -90,7 +90,7 @@ public:
      * @param scale_denom The denominator of the scale factor (image is scaled down by 1/scale_denom).
      * @return The scale factor that was set.
      */
-    virtual int setScale(const int& scale_denom);
+    virtual int setScale(const int scale_denom);
 
     /**
      * @brief Read the image header to extract basic properties (width, height, type).
@@ -133,6 +133,8 @@ public:
      */
     virtual bool checkSignature(const String& signature) const;
 
+    Animation animation() const { return m_animation; };
+
     /**
      * @brief Create and return a new instance of the derived image decoder.
      * @return A new ImageDecoder object.
@@ -151,6 +153,7 @@ protected:
     bool m_use_rgb;       ///< Flag indicating whether to decode the image in RGB order.
     ExifReader m_exif;    ///< Object for reading EXIF metadata from the image.
     size_t m_frame_count; ///< Number of frames in the image (for animations and multi-page images).
+    Animation m_animation;
 };
 
 
@@ -215,6 +218,8 @@ public:
      */
     virtual bool writemulti(const std::vector<Mat>& img_vec, const std::vector<int>& params);
 
+    virtual bool writeanimation(const Animation& animation, const std::vector<int>& params);
+
     /**
      * @brief Get a description of the image encoder (e.g., the format it supports).
      * @return A string describing the encoder.
@@ -231,7 +236,7 @@ public:
      * @brief Throw an exception based on the last error encountered during encoding.
      * This method can be used to propagate error conditions back to the caller.
      */
-    virtual void throwOnEror() const;
+    virtual void throwOnError() const;
 
 protected:
     String m_description;    ///< Description of the encoder (e.g., format name, capabilities).

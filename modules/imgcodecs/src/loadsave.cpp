@@ -1,44 +1,6 @@
-/*M///////////////////////////////////////////////////////////////////////////////////////
-//
-//  IMPORTANT: READ BEFORE DOWNLOADING, COPYING, INSTALLING OR USING.
-//
-//  By downloading, copying, installing or using the software you agree to this license.
-//  If you do not agree to this license, do not download, install,
-//  copy or use the software.
-//
-//
-//                        Intel License Agreement
-//                For Open Source Computer Vision Library
-//
-// Copyright (C) 2000, Intel Corporation, all rights reserved.
-// Third party copyrights are property of their respective owners.
-//
-// Redistribution and use in source and binary forms, with or without modification,
-// are permitted provided that the following conditions are met:
-//
-//   * Redistribution's of source code must retain the above copyright notice,
-//     this list of conditions and the following disclaimer.
-//
-//   * Redistribution's in binary form must reproduce the above copyright notice,
-//     this list of conditions and the following disclaimer in the documentation
-//     and/or other materials provided with the distribution.
-//
-//   * The name of Intel Corporation may not be used to endorse or promote products
-//     derived from this software without specific prior written permission.
-//
-// This software is provided by the copyright holders and contributors "as is" and
-// any express or implied warranties, including, but not limited to, the implied
-// warranties of merchantability and fitness for a particular purpose are disclaimed.
-// In no event shall the Intel Corporation or contributors be liable for any direct,
-// indirect, incidental, special, exemplary, or consequential damages
-// (including, but not limited to, procurement of substitute goods or services;
-// loss of use, data, or profits; or business interruption) however caused
-// and on any theory of liability, whether in contract, strict liability,
-// or tort (including negligence or otherwise) arising in any way out of
-// the use of this software, even if advised of the possibility of such damage.
-//
-//M*/
-
+// This file is part of OpenCV project.
+// It is subject to the license terms in the LICENSE file found in the top-level
+// directory of this distribution and at http://opencv.org/license.html
 //
 //  Loading and saving images.
 //
@@ -627,6 +589,115 @@ imreadmulti_(const String& filename, int flags, std::vector<Mat>& mats, int star
     return !mats.empty();
 }
 
+static bool
+imreadanimation_(const String& filename, int flags, int start, int count, Animation& animation)
+{
+    /// Search for the relevant decoder to handle the imagery
+    ImageDecoder decoder;
+
+    CV_CheckGE(start, 0, "Start index cannont be < 0");
+
+#ifdef HAVE_GDAL
+    if (flags != IMREAD_UNCHANGED && (flags & IMREAD_LOAD_GDAL) == IMREAD_LOAD_GDAL) {
+        decoder = GdalDecoder().newDecoder();
+    }
+    else {
+#endif
+        decoder = findDecoder(filename);
+#ifdef HAVE_GDAL
+    }
+#endif
+
+    /// if no decoder was found, return nothing.
+    if (!decoder) {
+        return 0;
+    }
+
+    if (count < 0) {
+        count = std::numeric_limits<int>::max();
+    }
+
+    if (flags & IMREAD_COLOR_RGB && flags != IMREAD_UNCHANGED)
+        decoder->setRGB(true);
+
+    /// set the filename in the driver
+    decoder->setSource(filename);
+    // read the header to make sure it succeeds
+    try
+    {
+        // read the header to make sure it succeeds
+        if (!decoder->readHeader())
+            return 0;
+    }
+    catch (const cv::Exception& e)
+    {
+        CV_LOG_ERROR(NULL, "imreadanimation_('" << filename << "'): can't read header: " << e.what());
+        return 0;
+    }
+    catch (...)
+    {
+        CV_LOG_ERROR(NULL, "imreadanimation_('" << filename << "'): can't read header: unknown exception");
+        return 0;
+    }
+
+    int current = start;
+
+    while (current > 0)
+    {
+        if (!decoder->nextPage())
+        {
+            return false;
+        }
+        --current;
+    }
+
+    while (current < count)
+    {
+        // grab the decoded type
+        const int type = calcType(decoder->type(), flags);
+
+        // established the required input image size
+        Size size = validateInputImageSize(Size(decoder->width(), decoder->height()));
+
+        // read the image data
+        Mat mat(size.height, size.width, type);
+        bool success = false;
+        try
+        {
+            if (decoder->readData(mat))
+                success = true;
+        }
+        catch (const cv::Exception& e)
+        {
+            CV_LOG_ERROR(NULL, "imreadanimation_('" << filename << "'): can't read data: " << e.what());
+        }
+        catch (...)
+        {
+            CV_LOG_ERROR(NULL, "imreadanimation_('" << filename << "'): can't read data: unknown exception");
+        }
+        if (!success)
+            break;
+
+        // optionally rotate the data if EXIF' orientation flag says so
+        if ((flags & IMREAD_IGNORE_ORIENTATION) == 0 && flags != IMREAD_UNCHANGED)
+        {
+            ApplyExifOrientation(decoder->getExifTag(ORIENTATION), mat);
+        }
+
+        animation.frames.push_back(mat);
+        if (!decoder->nextPage())
+        {
+            break;
+        }
+        ++current;
+    }
+    animation.bgcolor = decoder->animation().bgcolor;
+    animation.loop_count = decoder->animation().loop_count;
+    animation.timestamps = decoder->animation().timestamps;
+
+    return !animation.frames.empty();
+}
+
 /**
  * Read an image
  *
@@ -680,6 +751,13 @@ bool imreadmulti(const String& filename, std::vector<Mat>& mats, int start, int 
     CV_TRACE_FUNCTION();
 
     return imreadmulti_(filename, flags, mats, start, count);
+}
+
+bool imreadanimation(const String& filename, CV_OUT Animation& animation)
+{
+    CV_TRACE_FUNCTION();
+
+    return imreadanimation_(filename, IMREAD_UNCHANGED, 0, -1, animation);
 }
 
 static
@@ -811,6 +889,56 @@ bool imwrite( const String& filename, InputArray _img,
 
     CV_Assert(!img_vec.empty());
     return imwrite_(filename, img_vec, params, false);
+}
+
+
+static bool imwriteanimation_(const String& filename, const Animation& animation, const std::vector<int>& params)
+{
+    ImageEncoder encoder = findEncoder(filename);
+    if (!encoder)
+        CV_Error(Error::StsError, "could not find a writer for the specified extension");
+
+    encoder->setDestination(filename);
+
+    bool code = false;
+    try
+    {
+        code = encoder->writeanimation(animation, params);
+
+        if (!code)
+        {
+            FILE* f = fopen(filename.c_str(), "wb");
+            if (!f)
+            {
+                if (errno == EACCES)
+                {
+                    CV_LOG_WARNING(NULL, "imwriteanimation_('" << filename << "'): can't open file for writing: permission denied");
+                }
+            }
+            else
+            {
+                fclose(f);
+                remove(filename.c_str());
+            }
+        }
+    }
+    catch (const cv::Exception& e)
+    {
+        CV_LOG_ERROR(NULL, "imwriteanimation_('" << filename << "'): can't write data: " << e.what());
+    }
+    catch (...)
+    {
+        CV_LOG_ERROR(NULL, "imwriteanimation_('" << filename << "'): can't write data: unknown exception");
+    }
+
+    return code;
+}
+
+bool imwriteanimation(const String& filename, const Animation& animation, const std::vector<int>& params)
+{
+    CV_Assert(!animation.frames.empty());
+    CV_Assert(animation.frames.size() == animation.timestamps.size());
+    return imwriteanimation_(filename, animation, params);
 }
 
 static bool
@@ -1019,11 +1147,11 @@ imdecodemulti_(const Mat& buf, int flags, std::vector<Mat>& mats, int start, int
     }
     catch (const cv::Exception& e)
     {
-        CV_LOG_ERROR(NULL, "imreadmulti_('" << filename << "'): can't read header: " << e.what());
+        CV_LOG_ERROR(NULL, "imdecodemulti_('" << filename << "'): can't read header: " << e.what());
     }
     catch (...)
     {
-        CV_LOG_ERROR(NULL, "imreadmulti_('" << filename << "'): can't read header: unknown exception");
+        CV_LOG_ERROR(NULL, "imdecodemulti_('" << filename << "'): can't read header: unknown exception");
     }
 
     int current = start;
@@ -1068,11 +1196,11 @@ imdecodemulti_(const Mat& buf, int flags, std::vector<Mat>& mats, int start, int
         }
         catch (const cv::Exception& e)
         {
-            CV_LOG_ERROR(NULL, "imreadmulti_('" << filename << "'): can't read data: " << e.what());
+            CV_LOG_ERROR(NULL, "imdecodemulti_('" << filename << "'): can't read data: " << e.what());
         }
         catch (...)
         {
-            CV_LOG_ERROR(NULL, "imreadmulti_('" << filename << "'): can't read data: unknown exception");
+            CV_LOG_ERROR(NULL, "imdecodemulti_('" << filename << "'): can't read data: unknown exception");
         }
         if (!success)
             break;
@@ -1121,12 +1249,47 @@ bool imdecodemulti(InputArray _buf, int flags, CV_OUT std::vector<Mat>& mats, co
     }
 }
 
+static bool
+imencodemulti_( const String& ext, std::vector<Mat>& images,
+               std::vector<uchar>& buf, const std::vector<int>& params_ )
+{
+    CV_TRACE_FUNCTION();
+
+    ImageEncoder encoder = findEncoder( ext );
+    if( !encoder )
+        CV_Error( Error::StsError, "could not find encoder for the specified extension" );
+
+    CV_Check(params_.size(), (params_.size() & 1) == 0, "Encoding 'params' must be key-value pairs");
+    CV_CheckLE(params_.size(), (size_t)(CV_IO_MAX_IMAGE_PARAMS*2), "");
+
+    bool code = false;
+    if( encoder->setDestination(buf) )
+    {
+        code = encoder->writemulti(images, params_);
+        encoder->throwOnError();
+        CV_Assert( code );
+    }
+
+    return code;
+}
+
 bool imencode( const String& ext, InputArray _image,
                std::vector<uchar>& buf, const std::vector<int>& params_ )
 {
     CV_TRACE_FUNCTION();
 
-    Mat image = _image.getMat();
+    CV_Assert(!_image.empty());
+
+    Mat image;
+    std::vector<Mat> img_vec;
+    if (_image.isMatVector() || _image.isUMatVector())
+    {
+        _image.getMatVector(img_vec);
+        return imencodemulti_(ext, img_vec, buf, params_);
+    }
+    else
+        image = _image.getMat();
+
     CV_Assert(!image.empty());
 
     int channels = image.channels();
@@ -1170,7 +1333,7 @@ bool imencode( const String& ext, InputArray _image,
     if( encoder->setDestination(buf) )
     {
         code = encoder->write(image, params);
-        encoder->throwOnEror();
+        encoder->throwOnError();
         CV_Assert( code );
     }
     else
@@ -1180,7 +1343,7 @@ bool imencode( const String& ext, InputArray _image,
         CV_Assert( code );
 
         code = encoder->write(image, params);
-        encoder->throwOnEror();
+        encoder->throwOnError();
         CV_Assert( code );
 
         FILE* f = fopen( filename.c_str(), "rb" );

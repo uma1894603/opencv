@@ -164,7 +164,7 @@ TEST_P(Imgcodecs_PNG_Exif, DISABLED_exif_orientation)
     const int colorThresholdHigh = 250;
     const int colorThresholdLow = 5;
 
-    Mat m_img = imread(filename);
+    Mat m_img = imread(filename, IMREAD_UNCHANGED);
     ASSERT_FALSE(m_img.empty());
     Vec3b vec;
 

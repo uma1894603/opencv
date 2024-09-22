@@ -1,6 +1,7 @@
 // This file is part of OpenCV project.
-// It is subject to the license terms in the LICENSE file found in the top-level directory
-// of this distribution and at http://opencv.org/license.html
+// It is subject to the license terms in the LICENSE file found in the top-level
+// directory of this distribution and at http://opencv.org/license.html
+
 #include "test_precomp.hpp"
 
 namespace opencv_test { namespace {
@@ -113,6 +114,107 @@ TEST(Imgcodecs_WebP, encode_decode_with_alpha_webp)
     EXPECT_EQ(3,   img_webp_bgr.channels());
     EXPECT_EQ(512, img_webp_bgr.cols);
     EXPECT_EQ(512, img_webp_bgr.rows);
+}
+
+TEST(Imgcodecs_WebP, load_save_animation)
+{
+    srand(123); // Initialize the random seed for consistent random number generation.
+
+    // Set the path to the test image directory and filename for loading.
+    const string root = cvtest::TS::ptr()->get_data_path();
+    const string filename = root + "readwrite/OpenCV_logo_white.png";
+
+    // Create an Animation object using the default constructor.
+    // This initializes the loop count to 0 (infinite looping), background color to 0 (transparent),
+    // and quality to 100 (maximum).
+    Animation l_animation;
+
+    // Create an Animation object with custom parameters.
+    // loop_count is set to 0xffff (MAX_LOOP_COUNT).
+    // bgcolor is set to 0xffffffff (white background in RGBA format).
+    Animation s_animation(0xffff, 0xffffffff);
+
+    // Load the image file with alpha channel (IMREAD_UNCHANGED).
+    Mat image = imread(filename, IMREAD_UNCHANGED);
+    ASSERT_FALSE(image.empty()) << "Failed to load image: " << filename;
+
+    // Add the first frame with a timestamp of 100 milliseconds.
+    int timestamp = 100;
+    s_animation.timestamps.push_back(timestamp);
+    s_animation.frames.push_back(image.clone());  // Store the first frame.
+
+    // Define a region of interest (ROI) in the loaded image for manipulation.
+    Mat roi = image(Rect(0, 170, 164, 47));  // Select a subregion of the image.
+
+    // Modify the ROI in 13 iterations to simulate slight changes in animation frames.
+    for (int i = 0; i < 13; i++)
+    {
+        for (int x = 0; x < roi.rows; x++)
+            for (int y = 0; y < roi.cols; y++)
+            {
+                // Apply random changes to pixel values to create animation variations.
+                Vec4b& pixel = roi.at<Vec4b>(x, y);
+                if (pixel[0] > 220) pixel[0] -= rand() % 10;  // Reduce blue channel.
+                if (pixel[1] > 220) pixel[1] -= rand() % 10;  // Reduce green channel.
+                if (pixel[2] > 220) pixel[2] -= rand() % 10;  // Reduce red channel.
+                if (pixel[3] > 150) pixel[3] -= rand() % 7;   // Reduce alpha channel.
+            }
+
+        // Update the timestamp and add the modified frame to the animation.
+        timestamp += rand() % 10;  // Increment timestamp with random value.
+        s_animation.frames.push_back(image.clone());
+        s_animation.timestamps.push_back(timestamp);
+    }
+
+    // Add two identical frames with the same timestamp.
+    s_animation.timestamps.push_back(timestamp);
+    s_animation.frames.push_back(image);
+    s_animation.timestamps.push_back(timestamp);
+    s_animation.frames.push_back(image);
+
+    // Create a temporary output filename for saving the animation.
+    string output = cv::tempfile(".webp");
+
+    // Write the animation to a .webp file and verify success.
+    EXPECT_EQ(true, imwriteanimation(output, s_animation));
+
+    // Read the animation back and compare with the original.
+    EXPECT_EQ(true, imreadanimation(output, l_animation));
+
+    // Since the last three frames are identical, WebP optimizes by storing only one of them,
+    // and the duration for the last frame is handled by libwebp.
+    size_t expected_frame_count = s_animation.frames.size() - 2;
+
+    // Verify that the number of frames matches the expected count.
+    EXPECT_EQ(imcount(output), expected_frame_count);
+    EXPECT_EQ(l_animation.frames.size(), expected_frame_count);
+
+    // Check that the background color and loop count match between saved and loaded animations.
+    EXPECT_EQ(l_animation.bgcolor, s_animation.bgcolor);
+    EXPECT_EQ(l_animation.loop_count, s_animation.loop_count);
+
+    // Verify that the timestamps of frames (except the first and last) match.
+    for (size_t i = 1; i < l_animation.frames.size() - 1; i++)
+        EXPECT_EQ(s_animation.timestamps[i], l_animation.timestamps[i]);
+
+    // Test saving the animation frames as individual still images.
+    EXPECT_EQ(true, imwrite(output, s_animation.frames));
+
+    // Read back the still images into a vector of Mats.
+    vector<Mat> webp_frames;
+    EXPECT_EQ(true, imreadmulti(output, webp_frames));
+
+    // Expect only one frame since it's saved as a still image.
+    expected_frame_count = 1;
+    EXPECT_EQ(webp_frames.size(), expected_frame_count);
+
+    // Test encoding and decoding the image in memory (without saving to disk).
+    std::vector<uchar> buf;
+    EXPECT_EQ(true, imencode(".webp", webp_frames, buf));
+    EXPECT_EQ(true, imdecodemulti(buf, IMREAD_COLOR_RGB, webp_frames));
+
+    // Clean up by removing the temporary file.
+    EXPECT_EQ(0, remove(output.c_str()));
 }
 
 #endif // HAVE_WEBP
