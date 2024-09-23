@@ -228,7 +228,7 @@ struct CV_EXPORTS_W_SIMPLE Animation
     //! Number of times the animation should loop. 0 means infinite looping.
     CV_PROP_RW int loop_count;
     //! Background color of the animation in RGBA format.
-    CV_PROP_RW uint32_t bgcolor;
+    CV_PROP_RW unsigned int bgcolor;
     //! Timestamps for each frame in milliseconds.
     CV_PROP_RW std::vector<int> timestamps;
     //! Vector of frames, where each Mat represents a single frame.
