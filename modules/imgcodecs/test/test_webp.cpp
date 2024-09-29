@@ -208,10 +208,12 @@ TEST(Imgcodecs_WebP, load_save_animation)
     expected_frame_count = 1;
     EXPECT_EQ(webp_frames.size(), expected_frame_count);
 
-    // Test encoding and decoding the image in memory (without saving to disk).
+    // Test encoding and decoding the images in memory (without saving to disk).
     std::vector<uchar> buf;
-    EXPECT_EQ(true, imencode(".webp", webp_frames, buf));
-    EXPECT_EQ(true, imdecodemulti(buf, IMREAD_COLOR_RGB, webp_frames));
+    webp_frames.clear();
+    EXPECT_EQ(true, imencode(".webp", s_animation.frames, buf));
+    EXPECT_EQ(true, imdecodemulti(buf, IMREAD_UNCHANGED, webp_frames));
+    EXPECT_EQ(webp_frames.size(), expected_frame_count);
 
     // Clean up by removing the temporary file.
     EXPECT_EQ(0, remove(output.c_str()));
