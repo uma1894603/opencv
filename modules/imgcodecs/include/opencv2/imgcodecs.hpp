@@ -190,27 +190,22 @@ struct CV_EXPORTS_W_SIMPLE Animation
     //! Number of times the animation should loop. 0 means infinite looping.
     CV_PROP_RW int loop_count;
     //! Background color of the animation in RGBA format.
-    CV_PROP_RW int bgcolor;
+    CV_PROP_RW Scalar bgcolor;
     //! Timestamps for each frame in milliseconds.
     CV_PROP_RW std::vector<int> timestamps;
     //! Vector of frames, where each Mat represents a single frame.
     CV_PROP_RW std::vector<Mat> frames;
-    //! Quality of the animation, typically between 0 (lowest) and 100 (highest).
-    CV_PROP_RW int quality;
 
     // Default constructor
     Animation()
-        : loop_count(0), bgcolor(0), quality(100) // Initialize loop_count, bgcolor, and quality to default values
+        : loop_count(0), bgcolor(0)
     {
     }
 
     // Parameterized constructor for flexibility
-    Animation(int _loop_count, int _bgcolor, int _quality = 100)
-        : loop_count(_loop_count), bgcolor(_bgcolor), quality(_quality)
+    Animation(int _loop_count, Scalar _bgcolor)
+        : loop_count(_loop_count), bgcolor(_bgcolor)
     {
-        // Ensure valid quality range
-        if (_quality < 0 || _quality > 100)
-            this->quality = 100; // default to 100 if out of range
         if (_loop_count < 0 || _loop_count > 0xffff)
             this->loop_count = 0; // loop_count should be non-negative
     }

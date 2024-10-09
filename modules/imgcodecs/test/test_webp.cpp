@@ -118,7 +118,7 @@ TEST(Imgcodecs_WebP, encode_decode_with_alpha_webp)
 
 TEST(Imgcodecs_WebP, load_save_animation)
 {
-    srand(123); // Initialize the random seed for consistent random number generation.
+    RNG rng = theRNG();
 
     // Set the path to the test image directory and filename for loading.
     const string root = cvtest::TS::ptr()->get_data_path();
@@ -131,8 +131,9 @@ TEST(Imgcodecs_WebP, load_save_animation)
 
     // Create an Animation object with custom parameters.
     // loop_count is set to 0xffff (MAX_LOOP_COUNT).
-    // bgcolor is set to 0xffffffff (white background in RGBA format).
-    Animation s_animation(0xffff, 0xffffffff);
+    int loop_count = 0xffff;
+    Scalar bgcolor(128, 129, 127, 128);
+    Animation s_animation(loop_count, bgcolor);
 
     // Load the image file with alpha channel (IMREAD_UNCHANGED).
     Mat image = imread(filename, IMREAD_UNCHANGED);
@@ -154,14 +155,14 @@ TEST(Imgcodecs_WebP, load_save_animation)
             {
                 // Apply random changes to pixel values to create animation variations.
                 Vec4b& pixel = roi.at<Vec4b>(x, y);
-                if (pixel[0] > 220) pixel[0] -= rand() % 10;  // Reduce blue channel.
-                if (pixel[1] > 220) pixel[1] -= rand() % 10;  // Reduce green channel.
-                if (pixel[2] > 220) pixel[2] -= rand() % 10;  // Reduce red channel.
-                if (pixel[3] > 150) pixel[3] -= rand() % 7;   // Reduce alpha channel.
+                if (pixel[0] > 220) pixel[0] -= rng.uniform(2, 10);  // Reduce blue channel.
+                if (pixel[1] > 220) pixel[1] -= rng.uniform(2, 10);  // Reduce green channel.
+                if (pixel[2] > 220) pixel[2] -= rng.uniform(2, 10);  // Reduce red channel.
+                if (pixel[3] > 150) pixel[3] -= rng.uniform(2, 10);  // Reduce alpha channel.
             }
 
         // Update the timestamp and add the modified frame to the animation.
-        timestamp += rand() % 10;  // Increment timestamp with random value.
+        timestamp += rng.uniform(2, 10);  // Increment timestamp with random value.
         s_animation.frames.push_back(image.clone());
         s_animation.timestamps.push_back(timestamp);
     }

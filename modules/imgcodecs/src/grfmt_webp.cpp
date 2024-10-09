@@ -123,7 +123,11 @@ bool WebPDecoder::readHeader()
         WebPAnimInfo anim_info;
         WebPAnimDecoderGetInfo(anim_decoder.get(), &anim_info);
         m_animation.loop_count = anim_info.loop_count;
-        m_animation.bgcolor = anim_info.bgcolor;
+
+        m_animation.bgcolor[0] = (anim_info.bgcolor >> 24) & 0xFF;
+        m_animation.bgcolor[1] = (anim_info.bgcolor >> 16) & 0xFF;
+        m_animation.bgcolor[2] = (anim_info.bgcolor >> 8) & 0xFF;
+        m_animation.bgcolor[3] = anim_info.bgcolor & 0xFF;
         m_frame_count = anim_info.frame_count;
     }
     m_width = features.width;
@@ -366,9 +370,12 @@ bool WebPEncoder::writeanimation(const Animation& animation, const std::vector<i
         return false;
     }
 
-    config.lossless = animation.quality == 100 ? 1 : 0;
-    config.quality = static_cast<float>(animation.quality);
-    anim_config.anim_params.bgcolor = animation.bgcolor;
+    int bgvalue = (static_cast<int>(animation.bgcolor[0]) & 0xFF) << 24 |
+        (static_cast<int>(animation.bgcolor[1]) & 0xFF) << 16 |
+        (static_cast<int>(animation.bgcolor[2]) & 0xFF) << 8 |
+        (static_cast<int>(animation.bgcolor[3]) & 0xFF);
+
+    anim_config.anim_params.bgcolor = bgvalue;
     anim_config.anim_params.loop_count = animation.loop_count;
 
     if (params.size() > 1)
