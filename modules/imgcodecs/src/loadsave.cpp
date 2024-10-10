@@ -1266,7 +1266,7 @@ imencodemulti_( const String& ext, std::vector<Mat>& images,
     if( encoder->setDestination(buf) )
     {
         code = encoder->writemulti(images, params_);
-        encoder->throwOnError();
+        encoder->throwOnEror();
         CV_Assert( code );
     }
 
@@ -1333,7 +1333,7 @@ bool imencode( const String& ext, InputArray _image,
     if( encoder->setDestination(buf) )
     {
         code = encoder->write(image, params);
-        encoder->throwOnError();
+        encoder->throwOnEror();
         CV_Assert( code );
     }
     else
@@ -1343,7 +1343,7 @@ bool imencode( const String& ext, InputArray _image,
         CV_Assert( code );
 
         code = encoder->write(image, params);
-        encoder->throwOnError();
+        encoder->throwOnEror();
         CV_Assert( code );
 
         FILE* f = fopen( filename.c_str(), "rb" );

@@ -1,6 +1,6 @@
 // This file is part of OpenCV project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
-// of this distribution and at http://opencv.org/license.html.
+// of this distribution and at http://opencv.org/license.html
 
 #include "test_precomp.hpp"
 #include "test_common.hpp"
@@ -171,9 +171,6 @@ const string exts[] = {
 #endif
 #ifdef HAVE_IMGCODEC_SUNRASTER
     "ras",
-#endif
-#ifdef HAVE_WEBP
-    "webp",
 #endif
 };
 

@@ -1,6 +1,6 @@
 // This file is part of OpenCV project.
-// It is subject to the license terms in the LICENSE file found in the top-level directory
-// of this distribution and at http://opencv.org/license.html.
+// It is subject to the license terms in the LICENSE file found in the top-level
+// directory of this distribution and at http://opencv.org/license.html
 
 #ifndef _GRFMT_BASE_H_
 #define _GRFMT_BASE_H_
@@ -90,7 +90,7 @@ public:
      * @param scale_denom The denominator of the scale factor (image is scaled down by 1/scale_denom).
      * @return The scale factor that was set.
      */
-    virtual int setScale(const int scale_denom);
+    virtual int setScale(const int& scale_denom);
 
     /**
      * @brief Read the image header to extract basic properties (width, height, type).
@@ -236,7 +236,7 @@ public:
      * @brief Throw an exception based on the last error encountered during encoding.
      * This method can be used to propagate error conditions back to the caller.
      */
-    virtual void throwOnError() const;
+    virtual void throwOnEror() const;
 
 protected:
     String m_description;    ///< Description of the encoder (e.g., format name, capabilities).
