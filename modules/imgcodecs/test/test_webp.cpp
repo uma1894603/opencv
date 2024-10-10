@@ -154,10 +154,10 @@ TEST(Imgcodecs_WebP, load_save_animation)
             {
                 // Apply random changes to pixel values to create animation variations.
                 Vec4b& pixel = roi.at<Vec4b>(x, y);
-                if (pixel[0] > 220) pixel[0] -= rng.uniform(2, 10);  // Reduce blue channel.
-                if (pixel[1] > 220) pixel[1] -= rng.uniform(2, 10);  // Reduce green channel.
-                if (pixel[2] > 220) pixel[2] -= rng.uniform(2, 10);  // Reduce red channel.
-                if (pixel[3] > 150) pixel[3] -= rng.uniform(2, 10);  // Reduce alpha channel.
+                if (pixel[0] > 220) pixel[0] -= (uchar)rng.uniform(2, 10);  // Reduce blue channel.
+                if (pixel[1] > 220) pixel[1] -= (uchar)rng.uniform(2, 10);  // Reduce green channel.
+                if (pixel[2] > 220) pixel[2] -= (uchar)rng.uniform(2, 10);  // Reduce red channel.
+                if (pixel[3] > 150) pixel[3] -= (uchar)rng.uniform(2, 10);  // Reduce alpha channel.
             }
 
         // Update the timestamp and add the modified frame to the animation.
