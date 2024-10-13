@@ -351,7 +351,7 @@ The function imreadanimation loads frames from an animated file (e.g., AVIF, PNG
 
 @return Returns true if the file was successfully loaded and frames were extracted; returns false otherwise.
 */
-CV_EXPORTS_W bool imreadanimation(const String& filename, CV_OUT Animation& animation);
+CV_EXPORTS_W bool imreadanimation(const String& filename, CV_OUT Animation& animation, int start = 0, int count = UINT8_MAX);
 
 
 /** @brief Saves an animation to a specified file.

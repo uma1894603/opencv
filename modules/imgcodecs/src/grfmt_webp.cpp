@@ -108,6 +108,11 @@ ImageDecoder WebPDecoder::newDecoder() const
 
 bool WebPDecoder::readHeader()
 {
+    if (m_has_animation)
+    {
+        return true;
+    }
+
     uint8_t header[WEBP_HEADER_SIZE] = { 0 };
     if (m_buf.empty())
     {

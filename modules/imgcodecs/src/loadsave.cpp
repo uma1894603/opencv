@@ -627,115 +627,6 @@ imreadmulti_(const String& filename, int flags, std::vector<Mat>& mats, int star
     return !mats.empty();
 }
 
-static bool
-imreadanimation_(const String& filename, int flags, int start, int count, Animation& animation)
-{
-    /// Search for the relevant decoder to handle the imagery
-    ImageDecoder decoder;
-
-    CV_CheckGE(start, 0, "Start index cannont be < 0");
-
-#ifdef HAVE_GDAL
-    if (flags != IMREAD_UNCHANGED && (flags & IMREAD_LOAD_GDAL) == IMREAD_LOAD_GDAL) {
-        decoder = GdalDecoder().newDecoder();
-    }
-    else {
-#endif
-        decoder = findDecoder(filename);
-#ifdef HAVE_GDAL
-    }
-#endif
-
-    /// if no decoder was found, return nothing.
-    if (!decoder) {
-        return 0;
-    }
-
-    if (count < 0) {
-        count = std::numeric_limits<int>::max();
-    }
-
-    if (flags & IMREAD_COLOR_RGB && flags != IMREAD_UNCHANGED)
-        decoder->setRGB(true);
-
-    /// set the filename in the driver
-    decoder->setSource(filename);
-    // read the header to make sure it succeeds
-    try
-    {
-        // read the header to make sure it succeeds
-        if (!decoder->readHeader())
-            return 0;
-    }
-    catch (const cv::Exception& e)
-    {
-        CV_LOG_ERROR(NULL, "imreadanimation_('" << filename << "'): can't read header: " << e.what());
-        return 0;
-    }
-    catch (...)
-    {
-        CV_LOG_ERROR(NULL, "imreadanimation_('" << filename << "'): can't read header: unknown exception");
-        return 0;
-    }
-
-    int current = start;
-
-    while (current > 0)
-    {
-        if (!decoder->nextPage())
-        {
-            return false;
-        }
-        --current;
-    }
-
-    while (current < count)
-    {
-        // grab the decoded type
-        const int type = calcType(decoder->type(), flags);
-
-        // established the required input image size
-        Size size = validateInputImageSize(Size(decoder->width(), decoder->height()));
-
-        // read the image data
-        Mat mat(size.height, size.width, type);
-        bool success = false;
-        try
-        {
-            if (decoder->readData(mat))
-                success = true;
-        }
-        catch (const cv::Exception& e)
-        {
-            CV_LOG_ERROR(NULL, "imreadanimation_('" << filename << "'): can't read data: " << e.what());
-        }
-        catch (...)
-        {
-            CV_LOG_ERROR(NULL, "imreadanimation_('" << filename << "'): can't read data: unknown exception");
-        }
-        if (!success)
-            break;
-
-        // optionally rotate the data if EXIF' orientation flag says so
-        if ((flags & IMREAD_IGNORE_ORIENTATION) == 0 && flags != IMREAD_UNCHANGED)
-        {
-            ApplyExifOrientation(decoder->getExifTag(ORIENTATION), mat);
-        }
-
-        animation.frames.push_back(mat);
-        if (!decoder->nextPage())
-        {
-            break;
-        }
-        ++current;
-    }
-    animation.bgcolor = decoder->animation().bgcolor;
-    animation.loop_count = decoder->animation().loop_count;
-    animation.timestamps = decoder->animation().timestamps;
-
-    return !animation.frames.empty();
-}
-
 /**
  * Read an image
  *
@@ -791,11 +682,109 @@ bool imreadmulti(const String& filename, std::vector<Mat>& mats, int start, int 
     return imreadmulti_(filename, flags, mats, start, count);
 }
 
-bool imreadanimation(const String& filename, CV_OUT Animation& animation)
+static bool
+imreadanimation_(const String& filename, int flags, int start, int count, Animation& animation)
+{
+    bool success = false;
+    if (start < 0) {
+        start = 0;
+    }
+    if (count < 0) {
+        count = UINT8_MAX;
+    }
+
+    /// Search for the relevant decoder to handle the imagery
+    ImageDecoder decoder;
+    decoder = findDecoder(filename);
+
+    /// if no decoder was found, return false.
+    if (!decoder) {
+        return false;
+    }
+
+    /// set the filename in the driver
+    decoder->setSource(filename);
+    // read the header to make sure it succeeds
+    try
+    {
+        // read the header to make sure it succeeds
+        if (!decoder->readHeader())
+            return false;
+    }
+    catch (const cv::Exception& e)
+    {
+        CV_LOG_ERROR(NULL, "imreadanimation_('" << filename << "'): can't read header: " << e.what());
+        return false;
+    }
+    catch (...)
+    {
+        CV_LOG_ERROR(NULL, "imreadanimation_('" << filename << "'): can't read header: unknown exception");
+        return false;
+    }
+
+    int current = start;
+
+    while (current > 0)
+    {
+        if (!decoder->nextPage())
+        {
+            return false;
+        }
+        --current;
+    }
+
+    while (current < count)
+    {
+        // grab the decoded type
+        const int type = calcType(decoder->type(), flags);
+
+        // established the required input image size
+        Size size = validateInputImageSize(Size(decoder->width(), decoder->height()));
+
+        // read the image data
+        Mat mat(size.height, size.width, type);
+        success = false;
+        try
+        {
+            if (decoder->readData(mat))
+                success = true;
+        }
+        catch (const cv::Exception& e)
+        {
+            CV_LOG_ERROR(NULL, "imreadanimation_('" << filename << "'): can't read data: " << e.what());
+        }
+        catch (...)
+        {
+            CV_LOG_ERROR(NULL, "imreadanimation_('" << filename << "'): can't read data: unknown exception");
+        }
+        if (!success)
+            break;
+
+        // optionally rotate the data if EXIF' orientation flag says so
+        if ((flags & IMREAD_IGNORE_ORIENTATION) == 0 && flags != IMREAD_UNCHANGED)
+        {
+            ApplyExifOrientation(decoder->getExifTag(ORIENTATION), mat);
+        }
+
+        animation.frames.push_back(mat);
+        if (!decoder->nextPage())
+        {
+            break;
+        }
+        ++current;
+    }
+    animation.bgcolor = decoder->animation().bgcolor;
+    animation.loop_count = decoder->animation().loop_count;
+    animation.timestamps = decoder->animation().timestamps;
+
+    return success;
+}
+
+bool imreadanimation(const String& filename, CV_OUT Animation& animation, int start, int count)
 {
     CV_TRACE_FUNCTION();
 
-    return imreadanimation_(filename, IMREAD_UNCHANGED, 0, -1, animation);
+    return imreadanimation_(filename, IMREAD_UNCHANGED, start, count, animation);
 }
 
 static
