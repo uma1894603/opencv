@@ -121,7 +121,7 @@ TEST(Imgcodecs_WebP, load_save_animation)
 
     // Set the path to the test image directory and filename for loading.
     const string root = cvtest::TS::ptr()->get_data_path();
-    const string filename = root + "../cv/shared/baboon.png";
+    const string filename = root + "readwrite/OpenCV_logo_white.png";
 
     // Create an Animation object using the default constructor.
     // This initializes the loop count to 0 (infinite looping), background color to 0 (transparent),
@@ -134,7 +134,8 @@ TEST(Imgcodecs_WebP, load_save_animation)
     Scalar bgcolor(128, 129, 127, 128);
     Animation s_animation(loop_count, bgcolor);
 
-    Mat image = imread(filename);
+    // Load the image file with alpha channel (IMREAD_UNCHANGED).
+    Mat image = imread(filename, IMREAD_UNCHANGED);
     ASSERT_FALSE(image.empty()) << "Failed to load image: " << filename;
 
     // Add the first frame with a timestamp of 100 milliseconds.
@@ -152,10 +153,11 @@ TEST(Imgcodecs_WebP, load_save_animation)
             for (int y = 0; y < roi.cols; y++)
             {
                 // Apply random changes to pixel values to create animation variations.
-                Vec3b& pixel = roi.at<Vec3b>(x, y);
+                Vec4b& pixel = roi.at<Vec4b>(x, y);
                 if (pixel[0] > 220) pixel[0] -= (uchar)rng.uniform(2, 10);  // Reduce blue channel.
                 if (pixel[1] > 220) pixel[1] -= (uchar)rng.uniform(2, 10);  // Reduce green channel.
                 if (pixel[2] > 220) pixel[2] -= (uchar)rng.uniform(2, 10);  // Reduce red channel.
+                if (pixel[3] > 150) pixel[3] -= (uchar)rng.uniform(2, 10);  // Reduce alpha channel.
             }
 
         // Update the timestamp and add the modified frame to the animation.
@@ -181,7 +183,7 @@ TEST(Imgcodecs_WebP, load_save_animation)
 
     // Since the last frames are identical, WebP optimizes by storing only one of them,
     // and the duration for the last frame is handled by libwebp.
-    size_t expected_frame_count = s_animation.frames.size() - 1;
+    size_t expected_frame_count = s_animation.frames.size() - 2;
 
     // Verify that the number of frames matches the expected count.
     EXPECT_EQ(imcount(output), expected_frame_count);
