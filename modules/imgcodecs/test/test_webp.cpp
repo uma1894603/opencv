@@ -121,7 +121,7 @@ TEST(Imgcodecs_WebP, load_save_animation)
 
     // Set the path to the test image directory and filename for loading.
     const string root = cvtest::TS::ptr()->get_data_path();
-    const string filename = root + "readwrite/OpenCV_logo_white.png";
+    const string filename = root + "readwrite/opencv-logo-white.png";
 
     // Create an Animation object using the default constructor.
     // This initializes the loop count to 0 (infinite looping), background color to 0 (transparent),
@@ -142,10 +142,10 @@ TEST(Imgcodecs_WebP, load_save_animation)
     int timestamp = 100;
     s_animation.timestamps.push_back(timestamp * 5);
     s_animation.frames.push_back(image.clone());  // Store the first frame.
-    putText(s_animation.frames[0], "Frame 0", Point(25, 175), FONT_HERSHEY_SIMPLEX, .6, Scalar(255, 100, 0, 255), 2);
+    putText(s_animation.frames[0], "Frame 0", Point(30, 185), FONT_HERSHEY_SIMPLEX, .6, Scalar(255, 100, 0, 255), 2);
 
     // Define a region of interest (ROI) in the loaded image for manipulation.
-    Mat roi = image(Rect(0, 170, 164, 47));  // Select a subregion of the image.
+    Mat roi = image(Rect(0, 185, 178, 53));  // Select a subregion of the image.
 
     // Modify the ROI in 13 iterations to simulate slight changes in animation frames.
     for (int i = 1; i < 14; i++)
@@ -164,7 +164,7 @@ TEST(Imgcodecs_WebP, load_save_animation)
         // Update the timestamp and add the modified frame to the animation.
         timestamp += rng.uniform(2, 10);  // Increment timestamp with random value.
         s_animation.frames.push_back(image.clone());
-        putText(s_animation.frames[i], format("Frame %d", i), Point(25, 175), FONT_HERSHEY_SIMPLEX, .6, Scalar(255, 100, 0, 255), 2);
+        putText(s_animation.frames[i], format("Frame %d", i), Point(30, 185), FONT_HERSHEY_SIMPLEX, .6, Scalar(255, 100, 0, 255), 2);
         s_animation.timestamps.push_back(timestamp);
     }
 
