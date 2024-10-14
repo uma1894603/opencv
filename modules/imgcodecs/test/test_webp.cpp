@@ -140,14 +140,15 @@ TEST(Imgcodecs_WebP, load_save_animation)
 
     // Add the first frame with a timestamp of 100 milliseconds.
     int timestamp = 100;
-    s_animation.timestamps.push_back(timestamp);
+    s_animation.timestamps.push_back(timestamp * 5);
     s_animation.frames.push_back(image.clone());  // Store the first frame.
+    putText(s_animation.frames[0], "Frame 0", Point(25, 175), FONT_HERSHEY_SIMPLEX, .6, Scalar(255, 100, 0, 255), 2);
 
     // Define a region of interest (ROI) in the loaded image for manipulation.
     Mat roi = image(Rect(0, 170, 164, 47));  // Select a subregion of the image.
 
     // Modify the ROI in 13 iterations to simulate slight changes in animation frames.
-    for (int i = 0; i < 13; i++)
+    for (int i = 1; i < 14; i++)
     {
         for (int x = 0; x < roi.rows; x++)
             for (int y = 0; y < roi.cols; y++)
@@ -163,14 +164,15 @@ TEST(Imgcodecs_WebP, load_save_animation)
         // Update the timestamp and add the modified frame to the animation.
         timestamp += rng.uniform(2, 10);  // Increment timestamp with random value.
         s_animation.frames.push_back(image.clone());
+        putText(s_animation.frames[i], format("Frame %d", i), Point(25, 175), FONT_HERSHEY_SIMPLEX, .6, Scalar(255, 100, 0, 255), 2);
         s_animation.timestamps.push_back(timestamp);
     }
 
     // Add two identical frames with the same timestamp.
     s_animation.timestamps.push_back(timestamp);
-    s_animation.frames.push_back(image);
+    s_animation.frames.push_back(s_animation.frames[13].clone());
     s_animation.timestamps.push_back(timestamp);
-    s_animation.frames.push_back(image);
+    s_animation.frames.push_back(s_animation.frames[13].clone());
 
     // Create a temporary output filename for saving the animation.
     string output = cv::tempfile(".webp");
@@ -196,6 +198,9 @@ TEST(Imgcodecs_WebP, load_save_animation)
     // Verify that the timestamps of frames (except the first and last) match.
     for (size_t i = 1; i < l_animation.frames.size() - 1; i++)
         EXPECT_EQ(s_animation.timestamps[i], l_animation.timestamps[i]);
+
+    EXPECT_EQ(true, imreadanimation(output, l_animation, 5, 3));
+    EXPECT_EQ(l_animation.frames.size(), expected_frame_count + 3);
 
     // Test saving the animation frames as individual still images.
     EXPECT_EQ(true, imwrite(output, s_animation.frames));
