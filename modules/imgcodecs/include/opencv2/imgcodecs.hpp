@@ -346,8 +346,10 @@ CV_EXPORTS_W bool imreadmulti(const String& filename, CV_OUT std::vector<Mat>& m
 
 The function imreadanimation loads frames from an animated file (e.g., AVIF, PNG, WEBP) into the provided Animation struct.
 
-@param filename The name of the file to be loaded. This file should be an animated format supported by the function.
-@param animation A reference to an Animation struct that will be filled with the loaded frames. It is assumed to be initialized before the call.
+@param filename A string containing the path to the file. The file must be in a supported animated format (such as AVIF, PNG, or WebP).
+@param animation A reference to an Animation structure where the loaded frames will be stored. It should be initialized before the function is called.
+@param start The index of the first frame to load. This is optional and defaults to 0.
+@param count The number of frames to load. This is optional and defaults to 255.
 
 @return Returns true if the file was successfully loaded and frames were extracted; returns false otherwise.
 */
