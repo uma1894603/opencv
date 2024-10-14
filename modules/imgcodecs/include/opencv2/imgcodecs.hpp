@@ -247,12 +247,6 @@ struct CV_EXPORTS_W_SIMPLE Animation
         if (_loop_count < 0 || _loop_count > 0xffff)
             this->loop_count = 0; // loop_count should be non-negative
     }
-
-    //! Returns the total number of frames in the animation.
-    CV_WRAP int getFrameCount() const
-    {
-        return static_cast<int>(frames.size());
-    }
 };
 
 
