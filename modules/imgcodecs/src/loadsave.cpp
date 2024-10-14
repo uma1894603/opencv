@@ -722,18 +722,9 @@ imreadanimation_(const String& filename, int flags, int start, int count, Animat
         return false;
     }
 
-    int current = start;
+    int current = 0;
 
-    while (current > 0)
-    {
-        if (!decoder->nextPage())
-        {
-            return false;
-        }
-        --current;
-    }
-
-    while (current < count)
+    while (current < start + count)
     {
         // grab the decoded type
         const int type = calcType(decoder->type(), flags);
@@ -766,7 +757,9 @@ imreadanimation_(const String& filename, int flags, int start, int count, Animat
             ApplyExifOrientation(decoder->getExifTag(ORIENTATION), mat);
         }
 
-        animation.frames.push_back(mat);
+        if (current >= start)
+            animation.frames.push_back(mat);
+
         if (!decoder->nextPage())
         {
             break;
