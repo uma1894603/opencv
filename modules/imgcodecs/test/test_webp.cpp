@@ -124,21 +124,19 @@ TEST(Imgcodecs_WebP, load_save_animation)
     const string filename = root + "readwrite/opencv-logo-white.png";
 
     // Create an Animation object using the default constructor.
-    // This initializes the loop count to 0 (infinite looping), background color to 0 (transparent),
-    // and quality to 100 (maximum).
+    // This initializes the loop count to 0 (infinite looping), background color to 0 (transparent)
     Animation l_animation;
 
     // Create an Animation object with custom parameters.
-    // loop_count is set to 0xffff (MAX_LOOP_COUNT).
-    int loop_count = 0xffff;
-    Scalar bgcolor(128, 129, 127, 128);
+    int loop_count = 0xffff; // 0xffff is the maximum value to set.
+    Scalar bgcolor(125, 126, 127, 128); // different values for test purpose.
     Animation s_animation(loop_count, bgcolor);
 
     // Load the image file with alpha channel (IMREAD_UNCHANGED).
     Mat image = imread(filename, IMREAD_UNCHANGED);
     ASSERT_FALSE(image.empty()) << "Failed to load image: " << filename;
 
-    // Add the first frame with a timestamp of 100 milliseconds.
+    // Add the first frame with a timestamp of 500 milliseconds.
     int timestamp = 100;
     s_animation.timestamps.push_back(timestamp * 5);
     s_animation.frames.push_back(image.clone());  // Store the first frame.
@@ -205,11 +203,37 @@ TEST(Imgcodecs_WebP, load_save_animation)
     EXPECT_TRUE(cvtest::norm(l_animation.frames[6], l_animation.frames[15], NORM_INF) == 0);
     EXPECT_TRUE(cvtest::norm(l_animation.frames[7], l_animation.frames[16], NORM_INF) == 0);
 
+    std::vector<uchar> buf;
+    vector<Mat> webp_frames;
+    FILE* wfile = fopen(output.c_str(), "rb");
+    if (wfile != NULL)
+    {
+        fseek(wfile, 0, SEEK_END);
+        size_t wfile_size = ftell(wfile);
+        fseek(wfile, 0, SEEK_SET);
+
+        buf.resize(wfile_size);
+
+        size_t data_size = fread(&buf[0], 1, wfile_size, wfile);
+
+        if(wfile)
+        {
+            fclose(wfile);
+        }
+
+        if (data_size != wfile_size)
+        {
+            EXPECT_TRUE(false);
+        }
+    }
+    EXPECT_EQ(true, imdecodemulti(buf, IMREAD_UNCHANGED, webp_frames));
+    EXPECT_EQ(webp_frames.size(), expected_frame_count);
+
+    webp_frames.clear();
     // Test saving the animation frames as individual still images.
     EXPECT_EQ(true, imwrite(output, s_animation.frames));
 
     // Read back the still images into a vector of Mats.
-    vector<Mat> webp_frames;
     EXPECT_EQ(true, imreadmulti(output, webp_frames));
 
     // Expect only one frame since it's saved as a still image.
@@ -217,7 +241,6 @@ TEST(Imgcodecs_WebP, load_save_animation)
     EXPECT_EQ(webp_frames.size(), expected_frame_count);
 
     // Test encoding and decoding the images in memory (without saving to disk).
-    std::vector<uchar> buf;
     webp_frames.clear();
     EXPECT_EQ(true, imencode(".webp", s_animation.frames, buf));
     EXPECT_EQ(true, imdecodemulti(buf, IMREAD_UNCHANGED, webp_frames));
