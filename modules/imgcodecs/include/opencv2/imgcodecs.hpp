@@ -343,7 +343,7 @@ The function imreadanimation loads frames from an animated file (e.g., AVIF, PNG
 @param filename A string containing the path to the file. The file must be in a supported animated format (such as AVIF, PNG, or WebP).
 @param animation A reference to an Animation structure where the loaded frames will be stored. It should be initialized before the function is called.
 @param start The index of the first frame to load. This is optional and defaults to 0.
-@param count The number of frames to load. This is optional and defaults to 255.
+@param count The number of frames to load. This is optional and defaults to 32767.
 
 @return Returns true if the file was successfully loaded and frames were extracted; returns false otherwise.
 */

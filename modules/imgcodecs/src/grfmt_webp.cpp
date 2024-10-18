@@ -70,9 +70,7 @@ WebPDecoder::WebPDecoder()
     m_previous_timestamp = 0;
 }
 
-WebPDecoder::~WebPDecoder()
-{
-}
+WebPDecoder::~WebPDecoder() {}
 
 void WebPDecoder::UniquePtrDeleter::operator()(WebPAnimDecoder* decoder) const
 {
