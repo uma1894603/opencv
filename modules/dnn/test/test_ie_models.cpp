@@ -43,7 +43,7 @@ static void initDLDTDataPath()
         cvtest::addDataSearchEnv("INTEL_CVSDK_DIR");
 #else
         cvtest::addDataSearchEnv("OPENCV_OPEN_MODEL_ZOO_DATA_PATH");
-        const std::string dnnDataPath = utils::getConfigurationParameterString("OPENCV_DNN_TEST_DATA_PATH");
+        const std::string dnnDataPath = cv::utils::getConfigurationParameterString("OPENCV_DNN_TEST_DATA_PATH");
         if (!dnnDataPath.empty())
             cvtest::addDataSearchPath(std::string(dnnDataPath) + "/omz_intel_models");
 #endif

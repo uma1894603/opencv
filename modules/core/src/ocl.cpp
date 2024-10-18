@@ -2119,14 +2119,7 @@ static bool parseOpenCLDeviceConfiguration(const std::string& configurationStr,
     return true;
 }
 
-#if defined WINRT || defined _WIN32_WCE
-static cl_device_id selectOpenCLDevice(const char* configuration = NULL)
-{
-    CV_UNUSED(configuration)
-    return NULL;
-}
-#else
-static cl_device_id selectOpenCLDevice(const char* configuration_ = NULL)
+static cl_device_id selectOpenCLDevice(const std::string & configuration_ = std::string())
 {
     std::string platform, deviceName;
     std::vector<std::string> deviceTypes;
@@ -2288,7 +2281,6 @@ not_found:
     CV_LOG_ERROR(NULL, msg.str());
     return NULL;
 }
-#endif
 
 #ifdef HAVE_OPENCL_SVM
 namespace svm {
@@ -2495,7 +2487,7 @@ public:
             return impl;
         }
 
-        cl_device_id d = selectOpenCLDevice(configuration.empty() ? NULL : configuration.c_str());
+        cl_device_id d = selectOpenCLDevice(configuration);
         if (d == NULL)
             return NULL;
 

@@ -65,7 +65,7 @@ CV_SUPPRESS_DEPRECATED_END
 #define ERROR_MSG_CANT_LOAD "Failed to load OpenCL runtime\n"
 #define ERROR_MSG_INVALID_VERSION "Failed to load OpenCL runtime (expected version 1.1+)\n"
 
-static std::string getRuntimePath(const char* defaultPath)
+static std::string getRuntimePath(const std::string & defaultPath)
 {
     return cv::utils::getConfigurationParameterString("OPENCV_OPENCL_RUNTIME", defaultPath);
 }
