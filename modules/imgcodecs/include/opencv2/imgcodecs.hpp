@@ -235,16 +235,10 @@ struct CV_EXPORTS_W_SIMPLE Animation
     CV_PROP_RW std::vector<Mat> frames;
 
     // Default constructor
-    Animation()
-        : loop_count(0), bgcolor(0)
+    Animation(int loopCount = 0, Scalar bgColor = Scalar())
+        : loop_count(loopCount), bgcolor(bgColor)
     {
-    }
-
-    // Parameterized constructor for flexibility
-    Animation(int _loop_count, Scalar _bgcolor)
-        : loop_count(_loop_count), bgcolor(_bgcolor)
-    {
-        if (_loop_count < 0 || _loop_count > 0xffff)
+        if (loopCount < 0 || loopCount > 0xffff)
             this->loop_count = 0; // loop_count should be non-negative
     }
 };
