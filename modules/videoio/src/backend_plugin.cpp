@@ -337,7 +337,7 @@ std::vector<FileSystemPath_t> getPluginCandidates(const std::string& baseName)
         const std::string ffmpeg_env_path = cv::utils::getConfigurationParameterString("OPENCV_FFMPEG_DLL_DIR");
         if (!ffmpeg_env_path.empty())
         {
-            results.push_back(toFileSystemPath(ffmpeg_env_path + "\\" + moduleName));
+            results.push_back(toFileSystemPath(ffmpeg_env_path + "\\" + toPrintablePath(moduleName)));
         }
     }
     if (plugin_expr != default_expr)
