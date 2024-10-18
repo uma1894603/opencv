@@ -201,7 +201,7 @@ void Regression::init(const std::string& testSuitName, const std::string& ext)
 
     if (!data_path_dir.empty())
     {
-        int len = data_path_dir.size()-1;
+        int len = (int)data_path_dir.size()-1;
         if (len < 0) len = 0;
         std::string path_base = (data_path_dir[0] == 0 ? std::string(".") : data_path_dir)
                 + (data_path_dir[len] == '/' || data_path_dir[len] == '\\' ? "" : path_separator)
@@ -1892,7 +1892,7 @@ std::string TestBase::getDataPath(const std::string& relativePath)
     std::string path;
     if (!data_path_dir.empty())
     {
-        int len = data_path_dir.size() - 1;
+        int len = (int)data_path_dir.size() - 1;
         if (len < 0) len = 0;
         path = (data_path_dir[0] == 0 ? std::string(".") : std::string(data_path_dir))
                 + (data_path_dir[len] == '/' || data_path_dir[len] == '\\' ? "" : path_separator);

@@ -2991,9 +2991,9 @@ int videoInput::start(int deviceID, videoDevice *VD){
 
         HRESULT res = SaveGraphFile(VD->pGraph, &wfilename[0]);
         if (SUCCEEDED(res)) {
-            DebugPrintOut("Saved DSHOW graph to %s\n", graph_filename);
+            DebugPrintOut("Saved DSHOW graph to %s\n", graph_filename.c_str());
         } else {
-            DebugPrintOut("Failed to save DSHOW graph to %s\n", graph_filename);
+            DebugPrintOut("Failed to save DSHOW graph to %s\n", graph_filename.c_str());
         }
     }
 
