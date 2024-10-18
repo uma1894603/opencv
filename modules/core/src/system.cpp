@@ -1112,9 +1112,9 @@ String tempfile( const char* suffix )
     if (temp_dir.empty())
     {
         ::GetTempPathA(sizeof(temp_dir2), temp_dir2);
-        temp_dir = temp_dir2;
+        temp_dir = std::string(temp_dir2);
     }
-    if(0 == ::GetTempFileNameA(temp_dir, "ocv", 0, temp_file))
+    if(0 == ::GetTempFileNameA(temp_dir.c_str(), "ocv", 0, temp_file))
         return String();
 
     DeleteFileA(temp_file);
