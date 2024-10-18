@@ -1072,7 +1072,7 @@ String tempfile( const char* suffix )
 #if OPENCV_HAVE_FILESYSTEM_SUPPORT
     String fname;
 
-    const std::string temp_dir = utils::getConfigurationParameterString("OPENCV_TEMP_PATH");
+    std::string temp_dir = utils::getConfigurationParameterString("OPENCV_TEMP_PATH");
 
 #if defined _WIN32
 #ifdef WINRT
