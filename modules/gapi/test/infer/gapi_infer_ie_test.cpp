@@ -105,7 +105,7 @@ static void initDLDTDataPath()
     if (!initialized)
     {
         cvtest::addDataSearchEnv("OPENCV_OPEN_MODEL_ZOO_DATA_PATH");
-        const std::string dnnDataPath = utils::getConfigurationParameterString("OPENCV_DNN_TEST_DATA_PATH");
+        const std::string dnnDataPath = cv::utils::getConfigurationParameterString("OPENCV_DNN_TEST_DATA_PATH");
         if (!dnnDataPath.empty()) {
             // Add the dnnDataPath itself - G-API is using some images there directly
             cvtest::addDataSearchPath(dnnDataPath);
