@@ -199,6 +199,7 @@ TEST(Imgcodecs_WebP, load_save_animation)
 
     EXPECT_EQ(true, imreadanimation(output, l_animation, 5, 3));
     EXPECT_EQ(l_animation.frames.size(), expected_frame_count + 3);
+    EXPECT_EQ(l_animation.frames.size(), l_animation.timestamps.size());
     EXPECT_TRUE(cvtest::norm(l_animation.frames[5], l_animation.frames[14], NORM_INF) == 0);
     EXPECT_TRUE(cvtest::norm(l_animation.frames[6], l_animation.frames[15], NORM_INF) == 0);
     EXPECT_TRUE(cvtest::norm(l_animation.frames[7], l_animation.frames[16], NORM_INF) == 0);
