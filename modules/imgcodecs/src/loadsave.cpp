@@ -724,9 +724,9 @@ imreadanimation_(const String& filename, int flags, int start, int count, Animat
 
     int current = 0;
     int frame_count = (int)decoder->getFrameCount();
-    count = count > frame_count ? frame_count - start : count;
+    count = count + start > frame_count ? frame_count - start : count;
 
-    uint64 pixels = (uint64)decoder->width() * (uint64)decoder->height() * (uint64)count;
+    uint64 pixels = (uint64)decoder->width() * (uint64)decoder->height() * (uint64)(count + 4);
     if (pixels > CV_IO_MAX_IMAGE_PIXELS) {
         CV_LOG_WARNING(NULL, "\nyou are trying to read " << pixels <<
             " bytes that exceed CV_IO_MAX_IMAGE_PIXELS.\n");
