@@ -767,7 +767,10 @@ imreadanimation_(const String& filename, int flags, int start, int count, Animat
         }
 
         if (current >= start)
+        {
+            animation.timestamps.push_back(decoder->animation().timestamps[decoder->animation().timestamps.size() - 1]);
             animation.frames.push_back(mat);
+        }
 
         if (!decoder->nextPage())
         {
@@ -777,7 +780,6 @@ imreadanimation_(const String& filename, int flags, int start, int count, Animat
     }
     animation.bgcolor = decoder->animation().bgcolor;
     animation.loop_count = decoder->animation().loop_count;
-    animation.timestamps = decoder->animation().timestamps;
 
     return success;
 }
